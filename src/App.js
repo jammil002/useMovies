@@ -51,7 +51,9 @@ const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
 
 export default function App() {
+  // eslint-disable-next-line
   const [movies, setMovies] = useState(tempMovieData);
+  // eslint-disable-next-line
   const [watched, setWatched] = useState(tempWatchedData);
 
   return (
