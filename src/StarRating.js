@@ -2,7 +2,7 @@ import { useState } from "react";
 
 const containerStyle = {
   display: "flex",
-  alignItmes: "center",
+  alignItems: "center",
   gap: "16px",
 };
 
