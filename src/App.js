@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
+import StarRating from "./StarRating";
 
 const APIKey = "a9cd3773";
-const APIURL = `https://www.omdbapi.com/?apikey=${APIKey}&s=`;
-const query = "Star Wars";
+const APIURL = `https://www.omdbapi.com/?apikey=${APIKey}&`;
 
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
@@ -13,18 +13,32 @@ export default function App() {
   const [watched, setWatched] = useState([]);
   // Adding a loading state.
   const [isLoading, setIsLoading] = useState(false);
+  const [query, setQuery] = useState("");
   const [error, setError] = useState("");
+  const [selectedID, setSelectedID] = useState(null);
+
+  function handleAddWatch(movie) {
+    setWatched((watched) => [...watched, movie]);
+  }
+
+  function handleSelectMovie(id) {
+    setSelectedID((selectedID) => (id === selectedID ? null : id));
+  }
+
+  function handleCloseMovie() {
+    setSelectedID(null);
+  }
 
   //! A side effect is "any interaction between a React component and the world outside the component".
   // ! useEffect is a synchronization mechanism.
   // useEffect will only run when the component mounts. Triggered by rendering rather than an event.
   // This effect will be executed after render.
-
   useEffect(() => {
     async function fetchMovies() {
       try {
         setIsLoading(true);
-        const res = await fetch(`${APIURL}${query}`);
+        setError("");
+        const res = await fetch(`${APIURL}s=${query}`);
 
         if (!res.ok)
           throw new Error(
@@ -41,16 +55,21 @@ export default function App() {
         setMovies(data.Search);
         setIsLoading(false);
       } catch (err) {
-        console.err(err.message);
+        console.error(err.message);
         setError(err.message);
       } finally {
         setIsLoading(false);
       }
     }
 
+    if (query.length < 2) {
+      setMovies([]);
+      setError("");
+      return;
+    }
     fetchMovies();
     // In strict mode (development) effects will run twice.
-  }, []); // We can define dependencies within the dependency array. Each time one of the dependencies changes.
+  }, [query]); // We can define dependencies within the dependency array. Each time one of the dependencies changes.
   // ! Every state variable and prop used inside the effect MUST be included in the dependency array.
 
   // Re-renders will occur based on [].
@@ -60,19 +79,34 @@ export default function App() {
     <>
       <Navbar>
         <Logo />
-        <Search />
+        <Search query={query} setQuery={setQuery} />
         <NumResults movies={movies} />
       </Navbar>
 
       <Main>
         <Box>
           {isLoading && <Loader />}
-          {!isLoading && !error && <MovieList movies={movies}></MovieList>}
+          {!isLoading && !error && (
+            <MovieList
+              movies={movies}
+              onSelectMovie={handleSelectMovie}
+            ></MovieList>
+          )}
           {error && <ErrorMessage message={error} />}
         </Box>
         <Box>
-          <WatchedSummary watched={watched} />
-          <WatchedList watched={watched} />
+          {selectedID ? (
+            <MovieDetails
+              selectedID={selectedID}
+              onCloseMovie={handleCloseMovie}
+              onAddWatched={handleAddWatch}
+            />
+          ) : (
+            <>
+              <WatchedSummary watched={watched} />
+              <WatchedList watched={watched} />{" "}
+            </>
+          )}
         </Box>
       </Main>
     </>
@@ -99,13 +133,12 @@ function Logo() {
   return (
     <div className="logo">
       <span role="img">🍿</span>
-      <h1>usePopcorn</h1>
+      <h1>useMovies</h1>
     </div>
   );
 }
 
-function Search() {
-  const [query, setQuery] = useState("");
+function Search({ query, setQuery }) {
   return (
     <input
       className="search"
@@ -141,19 +174,19 @@ function Box({ children }) {
   );
 }
 
-function MovieList({ movies }) {
+function MovieList({ movies, onSelectMovie }) {
   return (
-    <ul className="list">
+    <ul className="list list-movies">
       {movies?.map((movie) => (
-        <Movie movie={movie} key={movie.imdbID} />
+        <Movie movie={movie} key={movie.imdbID} onSelectMovie={onSelectMovie} />
       ))}
     </ul>
   );
 }
 
-function Movie({ movie }) {
+function Movie({ movie, onSelectMovie }) {
   return (
-    <li key={movie.imdbID}>
+    <li onClick={() => onSelectMovie(movie.imdbID)}>
       <img src={movie.Poster} alt={`${movie.Title} poster`} />
       <h3>{movie.Title}</h3>
       <div>
@@ -163,6 +196,90 @@ function Movie({ movie }) {
         </p>
       </div>
     </li>
+  );
+}
+
+function MovieDetails({ selectedID, onCloseMovie, onAddWatched }) {
+  const [movie, setMovie] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  function handleAdd() {
+    const newWatchedMovie = {
+      imdbRating: selectedID,
+      title,
+      year,
+      poster,
+      imdbRating: Number(imdbRating),
+      runtime: Number(runtime.split(" ").at(0)),
+    };
+    onAddWatched(newWatchedMovie);
+    onCloseMovie();
+  }
+
+  // eslint-disable-next-line
+  const {
+    Title: title,
+    Year: year,
+    Poster: poster,
+    Runtime: runtime,
+    imdbRating,
+    Plot: plot,
+    Released: released,
+    Actors: actors,
+    Director: director,
+    Genre: genre,
+  } = movie;
+
+  useEffect(() => {
+    async function getMovieDetails() {
+      setIsLoading(true);
+      const res = await fetch(`${APIURL}i=${selectedID}`);
+      const data = await res.json();
+      setMovie(data);
+      setIsLoading(false);
+    }
+
+    getMovieDetails();
+  }, [selectedID]);
+
+  return (
+    <div className="details">
+      {isLoading ? (
+        <Loader />
+      ) : (
+        <>
+          <header>
+            <button className="btn-back" onClick={onCloseMovie}>
+              &#8592;
+            </button>
+            <img src={poster} alt={`Poster of ${movie}`}></img>
+            <div className="details-overview">
+              <h2>{title}</h2>
+              <p>
+                {released} &bull; {runtime}
+              </p>
+              <p>{genre}</p>
+              <p>
+                <span>⭐</span> {imdbRating} IMDb Rating
+              </p>
+            </div>
+          </header>
+          <section>
+            <div>
+              <StarRating maxRating={5} size={28} />
+              <button className="btn-add" onClick={handleAdd}>
+                + Add to List
+              </button>
+            </div>
+            <p>
+              <em>{plot}</em>
+            </p>
+            <p>Starring {actors}</p>
+            <p>Directed by {director}</p>
+          </section>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -208,9 +325,9 @@ function WatchedList({ watched }) {
 
 function WatchedMovie({ movie }) {
   return (
-    <li key={movie.imdbID}>
-      <img src={movie.Poster} alt={`${movie.Title} poster`} />
-      <h3>{movie.Title}</h3>
+    <li>
+      <img src={movie.poster} alt={`${movie.title} poster`} />
+      <h3>{movie.title}</h3>
       <div>
         <p>
           <span>⭐️</span>

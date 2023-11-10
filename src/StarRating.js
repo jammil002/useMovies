@@ -4,6 +4,7 @@ const containerStyle = {
   display: "flex",
   alignItems: "center",
   gap: "16px",
+  "margin-bottom": "5%",
 };
 
 const starContainerStyle = {
@@ -14,7 +15,7 @@ export default function StarRating({
   maxRating = 5,
   color = "#fcc419",
   size = 16,
-  defaultRating = 2,
+  defaultRating = 0,
   onSetRating,
 }) {
   const [rating, setRating] = useState(defaultRating);
@@ -22,7 +23,7 @@ export default function StarRating({
 
   function handleRating(rating) {
     setRating(rating);
-    onSetRating(rating);
+    setTempRating(rating);
   }
 
   const textStyle = {
