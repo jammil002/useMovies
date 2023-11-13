@@ -4,7 +4,6 @@ const containerStyle = {
   display: "flex",
   alignItems: "center",
   gap: "16px",
-  "margin-bottom": "5%",
 };
 
 const starContainerStyle = {
@@ -24,10 +23,11 @@ export default function StarRating({
   function handleRating(rating) {
     setRating(rating);
     setTempRating(rating);
+    onSetRating(rating);
   }
 
   const textStyle = {
-    lineHeight: "1",
+    lineHeight: "0",
     margin: "0",
     color,
     fontSize: `${size}px`,
